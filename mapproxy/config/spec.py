@@ -103,6 +103,10 @@ riak_node = {
     'http_port': number(),
 }
 
+cassandra_node = {
+    'host': str(),
+}
+
 cache_types = {
     'file': {
         'directory_layout': str(),
@@ -168,6 +172,10 @@ cache_types = {
         required('version'): number(),
         'tile_lock_dir': str(),
     },
+    'cassandra': {
+        'port': number(),
+        'nodes': [cassandra_node]
+    }
 }
 
 on_error = {

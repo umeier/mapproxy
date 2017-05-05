@@ -36,6 +36,7 @@ The following backend types are available.
 - :ref:`cache_redis`
 - :ref:`cache_s3`
 - :ref:`cache_compact`
+- :ref:`cache_cassandra`
 
 .. _cache_file:
 
@@ -107,7 +108,7 @@ The note about ``bulk_meta_tiles`` for SQLite below applies to MBtiles as well.
 .. _cache_sqlite:
 
 ``sqlite``
-===========
+==========
 
 .. versionadded:: 1.6.0
 
@@ -527,4 +528,56 @@ The following configuration will load tiles from ``/path/to/cache/L00/R0000C0000
 .. note::
 
   The compact cache format is append-only to allow parallel read and write operations. Removing or refreshing tiles with ``mapproxy-seed`` does not reduce the size of the cache files. Therefore, this format is not suitable for caches that require frequent updates.
+
+.. _cache_cassandra:
+
+``cassandra``
+=============
+
+Store tiles in a `Apache Cassandra <http://cassandra.apache.org>`_ cluster.
+
+Requirements
+------------
+
+You will need the `python cassandra driver <https://github.com/datastax/python-driver>`_ version 1.11.0 or newer. You can install it in the usual way, for example with
+``pip install cassandra-client``.
+
+Cassandra uses keyspaces and tables to store data. These keyspaces and tables have to be created before they can be used by mapproxy.
+The gridname is used as name for the keyspace, the cachename as name for the table.
+
+::
+
+    ~$ cqlsh localhost
+    cqlsh> create keyspace if not exists mygrid with replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+    cqlsh> use mygrid;
+    cqlsh:mygrid> create table if not exists mycassandracache (key text primary key, img blob, created bigint, length bigint);
+
+For details see the `Cassandra Query Language (CQL) documentation <https://cassandra.apache.org/doc/cql/CQL.html>`_.
+
+Configuration
+-------------
+
+Available options:
+
+``nodes``:
+    A list of cassandra-nodes. Each node needs a ``host``. A single localhost-node is used as default.
+
+``port``:
+    If a port other than 9042 is used, it has to be specified.
+
+Example
+-------
+
+::
+
+    mycassandracache:
+        sources: [mywms]
+        grids: [mygrid]
+        cache:
+            type: cassandra
+            port: 9042
+            nodes:
+              - host: host1
+              - host: host2
+              - host: host3
 

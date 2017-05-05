@@ -1233,6 +1233,18 @@ class CacheConfiguration(ConfigurationBase):
             cache_dir=cache_dir,
         )
 
+    def _cassandra_cache(self, grid_conf, file_ext):
+        from mapproxy.cache.cassandra_cql import CassandraCache
+        keyspace = grid_conf.tile_grid().name
+        tablename = self.conf['name']
+        nodes = self.conf['cache'].get('nodes')
+        if not nodes:
+            nodes = [{'host': '127.0.0.1'}]
+        port = self.conf['cache'].get('port')
+        if not port:
+            port = 9042
+        return CassandraCache(nodes, port, keyspace, tablename, self.lock_dir())
+
     def _tile_cache(self, grid_conf, file_ext):
         if self.conf.get('disable_storage', False):
             from mapproxy.cache.dummy import DummyCache
