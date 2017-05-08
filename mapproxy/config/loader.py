@@ -1377,15 +1377,21 @@ class CacheConfiguration(ConfigurationBase):
             request_format=request_format,
         )
 
+        available_bands = {'r': 0, 'g': 1, 'b': 2, 'a': 3}
+
         if 'l' in sources_conf:
-            mode = 'L'
+            available_bands = {'l': 0, 'a': 1}
+            if 'a' in sources_conf:
+                mode = 'LA'
+            else:
+                mode = 'L'
         elif 'a' in sources_conf:
             mode = 'RGBA'
         else:
             mode = 'RGB'
 
         band_merger = BandMerger(mode=mode)
-        available_bands = {'r': 0, 'g': 1, 'b': 2, 'a': 3, 'l': 0}
+
         for band, band_sources in iteritems(sources_conf):
             band_idx = available_bands.get(band)
             if band_idx is None:

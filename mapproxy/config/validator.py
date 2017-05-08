@@ -230,7 +230,7 @@ class Validator(object):
         )
 
     def _validate_bands(self, cache_name, bands):
-        if 'l' in bands and len(bands) > 1:
+        if 'l' in bands and len(bands) > 1 and not 'a' in bands:
             self.errors.append(
                 "Cannot combine 'l' band with bands in cache '%s'" % (
                     cache_name
