@@ -202,6 +202,8 @@ class BandMerger(object):
             result_bands = [None, None, None]
         elif tmp_mode == 'L':
             result_bands = [None]
+        elif tmp_mode == 'LA':
+            result_bands = [None, None]
         else:
             raise ValueError("unsupported destination mode %s", image_opts.mode)
 
