@@ -887,6 +887,14 @@ class MapnikSourceConfiguration(SourceConfiguration):
         else:
             fonts_dir = None
 
+        opacity_conf = self.conf.get('opacities', None)
+        if opacity_conf:
+            opacities = {}
+            for val in opacity_conf:
+                opacities[val['resolution']] = val['factor']
+        else:
+            opacities = None
+
         layers = self.conf.get('layers', None)
         if isinstance(layers, string_type):
             layers = layers.split(',')
@@ -910,7 +918,7 @@ class MapnikSourceConfiguration(SourceConfiguration):
 
         return MapnikSource(mapfile, layers=layers, image_opts=image_opts,
             coverage=coverage, res_range=res_range, lock=lock,
-            reuse_map_objects=reuse_map_objects, scale_factor=scale_factor, fonts=fonts_dir)
+            reuse_map_objects=reuse_map_objects, scale_factor=scale_factor, fonts=fonts_dir, opacities=opacities)
 
 class TileSourceConfiguration(SourceConfiguration):
     supports_meta_tiles = False

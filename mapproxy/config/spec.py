@@ -342,6 +342,13 @@ band_sources = {
     'l': [band_source],
 }
 
+opacity = {
+    required('resolution'): number(),
+    required('factor'): number(),
+}
+
+opacities = [opacity]
+
 mapproxy_yaml_spec = {
     '__config_files__': anything(), # only used internaly
     'globals': {
@@ -529,6 +536,7 @@ mapproxy_yaml_spec = {
                 'use_mapnik2': bool(),
                 'scale_factor': number(),
                 'fonts': str(),
+                'opacities': opacities,
             }),
             'arcgis': combined(source_commons, {
                required('req'): {

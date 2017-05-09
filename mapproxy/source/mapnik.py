@@ -18,6 +18,7 @@ from __future__ import with_statement, absolute_import
 import sys
 import threading
 import time
+import PIL
 
 from mapproxy.client.log import log_request
 from mapproxy.compat import BytesIO
@@ -53,7 +54,7 @@ class MapnikSource(MapLayer):
     supports_meta_tiles = True
 
     def __init__(self, mapfile, layers=None, image_opts=None, coverage=None,
-                 res_range=None, lock=None, reuse_map_objects=False, scale_factor=None, fonts=None):
+                 res_range=None, lock=None, reuse_map_objects=False, scale_factor=None, fonts=None, opacities=None):
         MapLayer.__init__(self, image_opts=image_opts)
         self.mapfile = mapfile
         self.coverage = coverage
@@ -70,6 +71,7 @@ class MapnikSource(MapLayer):
             self.extent = DefaultMapExtent()
 
         self.fonts = fonts
+        self.opacities = opacities
 
     def get_map(self, query):
         if self.res_range and not self.res_range.contains(query.bbox, query.size,
@@ -148,7 +150,21 @@ class MapnikSource(MapLayer):
                 mapnik.render(m, img, self.scale_factor)
             else:
                 mapnik.render(m, img)
-            data = img.tostring(str(query.format))
+
+            if self.opacities:
+                res = (query.bbox[2] - query.bbox[0]) / query.size[0]
+                target_res = min(self.opacities.keys(), key=lambda x:abs(x - res))
+                factor = self.opacities[target_res]
+                solidimage = PIL.Image.open(BytesIO(img.tostring(str(query.format))))
+                alphamask = solidimage.split()[3]
+                alphamask = alphamask.point(lambda i: i * factor)
+                solidimage.putalpha(alphamask)
+                b = BytesIO()
+                solidimage.save(b, str(query.format))
+                data = b.getvalue()
+            else:
+
+                data = img.tostring(str(query.format))
         finally:
             size = None
             if data:
