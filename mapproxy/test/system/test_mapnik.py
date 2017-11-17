@@ -26,6 +26,7 @@ from mapproxy.test.system import module_setup, module_teardown, SystemTest
 
 test_config = {}
 
+
 mapnik_xml = b"""
 <?xml version="1.0"?>
 <!DOCTYPE Map>
@@ -79,6 +80,7 @@ mapnik_fonts_xml = b"""
 
 
 def setup_module():
+
     try:
         import mapnik
         mapnik
@@ -105,7 +107,6 @@ def setup_module():
 
 def teardown_module():
     module_teardown(test_config)
-
 
 class TestMapnikSource(SystemTest):
     config = test_config

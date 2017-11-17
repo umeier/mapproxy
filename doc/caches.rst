@@ -108,7 +108,7 @@ The note about ``bulk_meta_tiles`` for SQLite below applies to MBtiles as well.
 .. _cache_sqlite:
 
 ``sqlite``
-==========
+===========
 
 .. versionadded:: 1.6.0
 
@@ -489,10 +489,16 @@ Example
 ===========
 
 .. versionadded:: 1.10.0
+  Support for format version 1
 
-Store tiles in ArcGIS compatible compact cache files. A single compact cache ``.bundle`` file stores up to about 16,000 tiles. There is one additional ``.bundlx`` index file for each ``.bundle`` data file.
+.. versionadded:: 1.11.0
+  Support for format version 2
 
-Only version 1 of the compact cache format (ArcGIS 10.0-10.2) is supported. Version 2 (ArcGIS 10.3 or higher) is not supported at the moment.
+Store tiles in ArcGIS compatible compact cache files. A single compact cache ``.bundle`` file stores up to about 16,000 tiles.
+
+Version 1 of the compact cache format is compatible with ArcGIS 10.0 and the default version of ArcGIS 10.0-10.2. Version 2 is supported by ArcGIS 10.3 or higher.
+Version 1 stores is one additional ``.bundlx`` index file for each ``.bundle`` data file.
+
 
 Available options:
 
@@ -500,7 +506,7 @@ Available options:
   Directory where MapProxy should store the level directories. This will not add the cache name or grid name to the path. You can use this option to point MapProxy to an existing compact cache.
 
 ``version``:
-  The version of the ArcGIS compact cache format. This option is required.
+  The version of the ArcGIS compact cache format. This option is required. Either ``1`` or ``2``.
 
 
 You can set the ``sources`` to an empty list, if you use an existing compact cache files and do not have a source.
@@ -516,8 +522,13 @@ The following configuration will load tiles from ``/path/to/cache/L00/R0000C0000
       grids: [webmercator]
       cache:
         type: compact
-        version: 1
+        version: 2
         directory: /path/to/cache
+
+.. note::
+
+  MapProxy does not support reading and writiting of the ``conf.cdi`` and ``conf.xml`` files. You need to configure a compatible MapProxy grid when you want to reuse exsting ArcGIS compact caches in MapProxy. You need to create or modify existing ``conf.cdi`` and ``conf.xml`` files when you want to use compact caches created with MapProxy in ArcGIS.
+
 
 .. note::
 
@@ -527,6 +538,9 @@ The following configuration will load tiles from ``/path/to/cache/L00/R0000C0000
 
 .. note::
 
+  The compact cache format is append-only to allow parallel read and write operations.
+  Removing or refreshing tiles with ``mapproxy-seed`` does not reduce the size of the cache files.
+  You can use the :ref:`defrag-compact-cache <mapproxy_defrag_compact_cache>` util to reduce the file size of existing bundle files.
   The compact cache format is append-only to allow parallel read and write operations. Removing or refreshing tiles with ``mapproxy-seed`` does not reduce the size of the cache files. Therefore, this format is not suitable for caches that require frequent updates.
 
 .. _cache_cassandra:

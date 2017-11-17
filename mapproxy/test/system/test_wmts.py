@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import with_statement, division
+from __future__ import division
 
 import re
 import os
@@ -93,6 +93,13 @@ class TestWMTS(SystemTest):
 
     def test_get_tile(self):
         resp = self.app.get(str(self.common_tile_req))
+        eq_(resp.content_type, 'image/jpeg')
+        data = BytesIO(resp.body)
+        assert is_jpeg(data)
+
+        # test with integer tilematrix
+        url = str(self.common_tile_req).replace('=01', '=1')
+        resp = self.app.get(url)
         eq_(resp.content_type, 'image/jpeg')
         data = BytesIO(resp.body)
         assert is_jpeg(data)

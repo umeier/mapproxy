@@ -20,19 +20,18 @@ import threading
 import time
 import PIL
 
-from mapproxy.client.log import log_request
-from mapproxy.compat import BytesIO
 from mapproxy.grid import tile_grid
 from mapproxy.image import ImageSource
 from mapproxy.image.opts import ImageOptions
 from mapproxy.layer import MapExtent, DefaultMapExtent, BlankImage, MapLayer
-from mapproxy.source import SourceError
-from mapproxy.util.async import run_non_blocking
+from mapproxy.source import  SourceError
+from mapproxy.client.log import log_request
 from mapproxy.util.py import reraise_exception
+from mapproxy.util.async import run_non_blocking
+from mapproxy.compat import BytesIO
 
 try:
     import mapnik
-
     mapnik
 except ImportError:
     try:
@@ -46,15 +45,12 @@ if mapnik and not hasattr(mapnik, 'Box2d'):
     mapnik.Box2d = mapnik.Envelope
 
 import logging
-
 log = logging.getLogger(__name__)
-
 
 class MapnikSource(MapLayer):
     supports_meta_tiles = True
-
     def __init__(self, mapfile, layers=None, image_opts=None, coverage=None,
-                 res_range=None, lock=None, reuse_map_objects=False, scale_factor=None, fonts=None, opacities=None):
+        res_range=None, lock=None, reuse_map_objects=False, scale_factor=None):
         MapLayer.__init__(self, image_opts=image_opts)
         self.mapfile = mapfile
         self.coverage = coverage
@@ -170,7 +166,7 @@ class MapnikSource(MapLayer):
             if data:
                 size = len(data)
             log_request('%s:%s:%s:%s' % (mapfile, query.bbox, query.srs.srs_code, query.size),
-                        status='200' if data else '500', size=size, method='API', duration=time.time() - start_time)
+                status='200' if data else '500', size=size, method='API', duration=time.time()-start_time)
 
         return ImageSource(BytesIO(data), size=query.size,
-                           image_opts=ImageOptions(transparent=self.transparent, format=query.format))
+                           image_opts=ImageOptions(format=query.format))

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import with_statement, division
+from __future__ import division
 
 import functools
 
@@ -75,6 +75,9 @@ class TestWMTS(SystemTest):
         serv.returns(create_tmp_image((256, 256)))
         with serv:
             resp = self.app.get('/wmts/myrest/tms_cache_ul/ulgrid/01/0/0.png', status=200)
+            eq_(resp.content_type, 'image/png')
+            # test without leading 0 in level
+            resp = self.app.get('/wmts/myrest/tms_cache_ul/ulgrid/1/0/0.png', status=200)
             eq_(resp.content_type, 'image/png')
 
     def test_get_tile_source_error(self):
