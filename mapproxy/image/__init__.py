@@ -292,7 +292,7 @@ def img_to_buf(img, image_opts):
             image_opts.transparent = False
 
     # quantize if colors is set, but not if we already have a paletted image
-    if image_opts.colors and not (img.mode == 'P' and len(img.getpalette()) == image_opts.colors*3):
+    if image_opts.colors and not (img.mode == 'LA' or (img.mode == 'P' and len(img.getpalette()) == image_opts.colors*3)):
         quantizer = None
         if 'quantizer' in image_opts.encoding_options:
             quantizer = image_opts.encoding_options['quantizer']

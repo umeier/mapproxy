@@ -181,7 +181,6 @@ class BandMerger(object):
         src_img_bands = []
         for i, layer_img in enumerate(sources):
             img = layer_img.as_image()
-
             if i not in self.max_band:
                 # do not split img if not requested by any op
                 src_img_bands.append(None)
