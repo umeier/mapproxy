@@ -16,7 +16,7 @@
 """
 Configuration loading and system initializing.
 """
-from __future__ import division
+from __future__ import with_statement, division
 
 import os
 import sys

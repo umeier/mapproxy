@@ -16,6 +16,7 @@
 """
 Image and tile manipulation (transforming, merging, etc).
 """
+from __future__ import with_statement
 
 from collections import namedtuple
 from mapproxy.compat.image import Image, ImageColor, ImageChops, ImageMath
