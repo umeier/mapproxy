@@ -287,7 +287,7 @@ This backend is good for very large caches which can be distributed over many no
 Requirements
 ------------
 
-You will need the `Python Riak client <https://pypi.python.org/pypi/riak>`_ version 2.0 or newer. You can install it in the usual way, for example with ``pip install riak``. Environments with older version must be upgraded with ``pip install -U riak``.
+You will need the `Python Riak client <https://pypi.org/project/riak>`_ version 2.4.2 or older. You can install it in the usual way, for example with ``pip install riak==2.4.2``. Environments with older version must be upgraded with ``pip install -U riak==2.4.2``. Python library depends on packages `python-dev`, `libffi-dev` and `libssl-dev`.
 
 Configuration
 -------------
@@ -295,13 +295,13 @@ Configuration
 Available options:
 
 ``nodes``:
-    A list of riak nodes. Each node needs a ``host`` and optionally a ``pb_port`` and an ``http_port`` if the ports differ from the default. A single localhost node is used if you don't configure any nodes.
+    A list of riak nodes. Each node needs a ``host`` and optionally a ``pb_port`` and an ``http_port`` if the ports differ from the default. Defaults to single localhost node.
 
 ``protocol``:
     Communication protocol. Allowed options is ``http``, ``https`` and ``pbc``. Defaults to ``pbc``.
 
 ``bucket``:
-    The name of the bucket MapProxy uses for this cache. The bucket is the namespace for the tiles and needs to be unique for each cache. Defaults to cache name suffixed with grid name (e.g. ``mycache_webmercator``).
+    The name of the bucket MapProxy uses for this cache. The bucket is the namespace for the tiles and must be unique for each cache. Defaults to cache name suffixed with grid name (e.g. ``mycache_webmercator``).
 
 ``default_ports``:
     Default ``pb`` and ``http`` ports for ``pbc`` and ``http`` protocols. Will be used as the default for each defined node.
@@ -314,20 +314,21 @@ Example
 
 ::
 
-    myriakcache:
-        sources: [mywms]
-        grids: [mygrid]
-        type: riak
-        nodes:
-            - host: 1.example.org
-              pb_port: 9999
-            - host: 1.example.org
-            - host: 1.example.org
-        protocol: pbc
-        bucket: myriakcachetiles
-        default_ports:
-            pb: 8087
-            http: 8098
+  myriakcache:
+    sources: [mywms]
+    grids: [mygrid]
+    cache:
+      type: riak
+      nodes:
+        - host: 1.example.org
+          pb_port: 9999
+        - host: 1.example.org
+        - host: 1.example.org
+      protocol: pbc
+      bucket: myriakcachetiles
+      default_ports:
+        pb: 8087
+        http: 8098
 
 .. _cache_redis:
 
@@ -347,7 +348,7 @@ Your Redis database should be configured with ``maxmemory`` and ``maxmemory-poli
 Requirements
 ------------
 
-You will need the `Python Redis client <https://pypi.python.org/pypi/redis>`_. You can install it in the usual way, for example with ``pip install redis``.
+You will need the `Python Redis client <https://pypi.org/project/redis>`_. You can install it in the usual way, for example with ``pip install redis``.
 
 Configuration
 -------------
@@ -434,13 +435,16 @@ You can set the ``sources`` to an empty list, if you use an existing geopackage 
 
 .. versionadded:: 1.10.0
 
-Store tiles in a `Amazon Simple Storage Service (S3) <https://aws.amazon.com/s3/>`_.
+.. versionadded:: 1.11.0
+  ``region_name``, ``endpoint_url`` and ``access_control_list``
+
+Store tiles in a `Amazon Simple Storage Service (S3) <https://aws.amazon.com/s3/>`_ or any other S3 compatible object storage.
 
 
 Requirements
 ------------
 
-You will need the Python `boto3 <https://github.com/boto/boto3>`_ package. You can install it in the usual way, for example with ``pip install boto3``.
+You will need the Python `boto3 <https://pypi.org/project/boto3>`_ package. You can install it in the usual way, for example with ``pip install boto3``.
 
 Configuration
 -------------
@@ -453,6 +457,15 @@ Available options:
 ``profile_name``:
   Optional profile name for `shared credentials <http://boto3.readthedocs.io/en/latest/guide/configuration.html>`_ for this cache. Alternative methods of authentification are using the  ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY`` environmental variables, or by using an `IAM role <http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html>`_ when using an Amazon EC2 instance.
   You can set the default profile with ``globals.cache.s3.profile_name``.
+
+``region_name``:
+  Optional name of the region. You can set the default region_name with ``globals.cache.s3.region_name``
+
+``endpoint_url``:
+  Optional endpoint_url for the S3. You can set the default endpoint_url with ``globals.cache.s3.endpoint_url``.
+
+``access_control_list``:
+  Optional access control list for the S3. You can set the default access_control_list with ``globals.cache.s3.access_control_list``.
 
 ``directory``:
   Base directory (path) where all tiles are stored.
@@ -480,6 +493,28 @@ Example
     cache:
       s3:
         profile_name: default
+
+
+Example usage with DigitalOcean Spaces
+--------------------------------------
+
+::
+
+  cache:
+    my_layer_20110501_epsg_4326_cache_out:
+      sources: [my_layer_20110501_cache]
+      cache:
+        type: s3
+        directory: /1.0.0/my_layer/default/20110501/4326/
+        bucket_name: my-s3-tiles-cache
+
+  globals:
+    cache:
+      s3:
+        profile_name: default
+        region_name: nyc3
+        endpoint_url: https://nyc3.digitaloceanspaces.com
+        access_control_list: public-read
 
 
 .. _cache_compact:

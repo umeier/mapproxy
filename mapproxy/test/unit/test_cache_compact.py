@@ -30,7 +30,6 @@ from mapproxy.image.opts import ImageOptions
 from mapproxy.script.defrag import defrag_compact_cache
 from mapproxy.test.unit.test_cache_tile import TileCacheTestBase
 
-from nose.tools import eq_
 
 class TestCompactCacheV1(TileCacheTestBase):
 
@@ -106,13 +105,13 @@ class TestCompactCacheV1(TileCacheTestBase):
         def assert_header(tile_bytes_written, max_tile_bytes):
             with open(os.path.join(self.cache_dir, 'L12', 'R0380C1380.bundle'), 'r+b') as f:
                 header = struct.unpack('<lllllllllllllll', f.read(60))
-                eq_(header[11], 896)
-                eq_(header[12], 1023)
-                eq_(header[13], 4992)
-                eq_(header[14], 5119)
-                eq_(header[6], 60 + 128*128*4 + sum(tile_bytes_written))
-                eq_(header[2], max_tile_bytes)
-                eq_(header[4], len(tile_bytes_written)*4)
+                assert header[11] == 896
+                assert header[12] == 1023
+                assert header[13] == 4992
+                assert header[14] == 5119
+                assert header[6] == 60 + 128*128*4 + sum(tile_bytes_written)
+                assert header[2] == max_tile_bytes
+                assert header[4] == len(tile_bytes_written)*4
 
         assert_header([4000 + 4], 4000)
 
@@ -192,10 +191,10 @@ class TestCompactCacheV2(TileCacheTestBase):
         def assert_header(tile_bytes_written, max_tile_bytes):
             with open(os.path.join(self.cache_dir, 'L12', 'R0380C1380.bundle'), 'r+b') as f:
                 header = struct.unpack('<4I3Q6I', f.read(64))
-                eq_(header[0], 3) # version
-                eq_(header[1], 128*128)
-                eq_(header[2], max_tile_bytes)
-                eq_(header[5], 64 + 128*128*8 + sum(tile_bytes_written))
+                assert header[0] == 3  # version
+                assert header[1] == 128*128
+                assert header[2] == max_tile_bytes
+                assert header[5] == 64 + 128*128*8 + sum(tile_bytes_written)
 
         assert_header([4000 + 4], 4000)
 
@@ -264,7 +263,7 @@ class DefragmentationTestBase(object):
         before = os.path.getsize(fname)
         defrag_compact_cache(cache, log_progress=logger)
         assert len(logger.logs) == 1
-        eq_(logger.logs[0]['defrag'], False)
+        assert logger.logs[0]['defrag'] == False
         after = os.path.getsize(fname)
         assert before == after
 
@@ -272,7 +271,7 @@ class DefragmentationTestBase(object):
         before = os.path.getsize(fname)
         defrag_compact_cache(cache, min_bytes=50000, log_progress=logger)
         assert len(logger.logs) == 1
-        eq_(logger.logs[0]['defrag'], True)
+        assert logger.logs[0]['defrag'] == True
         after = os.path.getsize(fname)
         assert after < before
 
@@ -298,8 +297,8 @@ class DefragmentationTestBase(object):
         before = os.path.getsize(fname)
         defrag_compact_cache(cache, log_progress=logger)
         assert len(logger.logs) == 2
-        eq_(logger.logs[0]['defrag'], False)
-        eq_(logger.logs[1]['defrag'], False)
+        assert logger.logs[0]['defrag'] == False
+        assert logger.logs[1]['defrag'] == False
         after = os.path.getsize(fname)
         assert before == after
 
@@ -307,8 +306,8 @@ class DefragmentationTestBase(object):
         before = os.path.getsize(fname)
         defrag_compact_cache(cache, min_percent=0.08, log_progress=logger)
         assert len(logger.logs) == 2
-        eq_(logger.logs[0]['defrag'], True)
-        eq_(logger.logs[1]['defrag'], False)
+        assert logger.logs[0]['defrag'] == True
+        assert logger.logs[1]['defrag'] == False
         after = os.path.getsize(fname)
         assert after < before
 

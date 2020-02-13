@@ -18,6 +18,7 @@ from mapproxy.image import ImageSource
 from mapproxy.image.merge import concat_legends
 from mapproxy.test.image import is_png
 
+
 class Test_Concat_Legends(object):
     def test_concatenation(self):
         legends = []

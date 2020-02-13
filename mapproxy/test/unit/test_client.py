@@ -16,26 +16,30 @@
 
 import os
 import time
-import sys
+
+import pytest
 
 from mapproxy.client.http import HTTPClient, HTTPClientError, supports_ssl_default_context
-from mapproxy.client.tile import TMSClient, TileClient, TileURLTemplate
+from mapproxy.client.tile import TileClient, TileURLTemplate
 from mapproxy.client.wms import WMSClient, WMSInfoClient
 from mapproxy.grid import tile_grid
 from mapproxy.layer import MapQuery, InfoQuery
-from mapproxy.request.wms import WMS111MapRequest, WMS100MapRequest,\
-                                 WMS130MapRequest, WMS111FeatureInfoRequest
-from mapproxy.srs import SRS
-from mapproxy.test.unit.test_cache import MockHTTPClient
-from mapproxy.test.http import mock_httpd, query_eq, assert_query_eq, wms_query_eq
+from mapproxy.request.wms import (
+    WMS111MapRequest,
+    WMS100MapRequest,
+    WMS130MapRequest,
+    WMS111FeatureInfoRequest,
+)
+from mapproxy.source import SourceError
+from mapproxy.srs import SRS, SupportedSRS
 from mapproxy.test.helper import assert_re, TempFile
+from mapproxy.test.http import mock_httpd, query_eq, assert_query_eq, wms_query_eq
+from mapproxy.test.unit.test_cache import MockHTTPClient
 
-from nose.tools import eq_
-from nose.plugins.skip import SkipTest
-from nose.plugins.attrib import attr
 
 TESTSERVER_ADDRESS = ('127.0.0.1', 56413)
 TESTSERVER_URL = 'http://%s:%s' % TESTSERVER_ADDRESS
+
 
 class TestHTTPClient(object):
     def setup(self):
@@ -55,6 +59,7 @@ class TestHTTPClient(object):
             assert_re(e.args[0], r'HTTP Error ".*": 500')
         else:
             assert False, 'expected HTTPClientError'
+
     def test_invalid_url_type(self):
         try:
             self.client.open('htp://example.org')
@@ -62,6 +67,7 @@ class TestHTTPClient(object):
             assert_re(e.args[0], r'No response .* "htp://example.*": unknown url type')
         else:
             assert False, 'expected HTTPClientError'
+
     def test_invalid_url(self):
         try:
             self.client.open('this is not a url')
@@ -69,6 +75,7 @@ class TestHTTPClient(object):
             assert_re(e.args[0], r'URL not correct "this is not.*": unknown url type')
         else:
             assert False, 'expected HTTPClientError'
+
     def test_unknown_host(self):
         try:
             self.client.open('http://thishostshouldnotexist000136really42.org')
@@ -76,6 +83,7 @@ class TestHTTPClient(object):
             assert_re(e.args[0], r'No response .* "http://thishost.*": .*')
         else:
             assert False, 'expected HTTPClientError'
+
     def test_no_connect(self):
         try:
             self.client.open('http://localhost:53871')
@@ -84,24 +92,33 @@ class TestHTTPClient(object):
         else:
             assert False, 'expected HTTPClientError'
 
-    @attr('online')
+    def test_internal_error_hide_error_details(self):
+        try:
+            with mock_httpd(TESTSERVER_ADDRESS, [({'path': '/'},
+                                                  {'status': '500', 'body': b''})]):
+                HTTPClient(hide_error_details=True).open(TESTSERVER_URL + '/')
+        except HTTPClientError as e:
+            assert_re(e.args[0], r'HTTP Error \(see logs for URL and reason\).')
+        else:
+            assert False, 'expected HTTPClientError'
+
+    @pytest.mark.online
     def test_https_untrusted_root(self):
         if not supports_ssl_default_context:
-            # old python versions require ssl_ca_certs
-            raise SkipTest()
+            raise pytest.skip("old python versions require ssl_ca_certs")
         self.client = HTTPClient('https://untrusted-root.badssl.com/')
         try:
             self.client.open('https://untrusted-root.badssl.com/')
         except HTTPClientError as e:
             assert_re(e.args[0], r'Could not verify connection to URL')
 
-    @attr('online')
+    @pytest.mark.online
     def test_https_insecure(self):
         self.client = HTTPClient(
             'https://untrusted-root.badssl.com/', insecure=True)
         self.client.open('https://untrusted-root.badssl.com/')
 
-    @attr('online')
+    @pytest.mark.online
     def test_https_valid_ca_cert_file(self):
         # verify with fixed ca_certs file
         cert_file = '/etc/ssl/certs/ca-certificates.crt'
@@ -115,15 +132,15 @@ class TestHTTPClient(object):
                 self.client = HTTPClient('https://www.google.com/', ssl_ca_certs=tmp)
                 self.client.open('https://www.google.com/')
 
-    @attr('online')
+    @pytest.mark.online
     def test_https_valid_default_cert(self):
         # modern python should verify by default
         if not supports_ssl_default_context:
-            raise SkipTest()
+            raise pytest.skip("old python versions require ssl_ca_certs")
         self.client = HTTPClient('https://www.google.com/')
         self.client.open('https://www.google.com/')
 
-    @attr('online')
+    @pytest.mark.online
     def test_https_invalid_cert(self):
         # load 'wrong' root cert
         with TempFile() as tmp:
@@ -235,16 +252,6 @@ A4GBAFjOKer89961zgK5F7WF0bnj4JXMJTENAKaSbn+2kmOeUJXRmm/kEd5jhW6Y
 -----END CERTIFICATE-----
 """
 
-
-class TestTMSClient(object):
-    def setup(self):
-        self.client = TMSClient(TESTSERVER_URL)
-    def test_get_tile(self):
-        with mock_httpd(TESTSERVER_ADDRESS, [({'path': '/9/5/13.png'},
-                                                {'body': b'tile', 'headers': {'content-type': 'image/png'}})]):
-            resp = self.client.get_tile((5, 13, 9)).source.read()
-            eq_(resp, b'tile')
-
 class TestTileClient(object):
     def test_tc_path(self):
         template = TileURLTemplate(TESTSERVER_URL + '/%(tc_path)s.png')
@@ -253,7 +260,7 @@ class TestTileClient(object):
                                               {'body': b'tile',
                                                'headers': {'content-type': 'image/png'}})]):
             resp = client.get_tile((5, 13, 9)).source.read()
-            eq_(resp, b'tile')
+            assert resp == b'tile'
 
     def test_quadkey(self):
         template = TileURLTemplate(TESTSERVER_URL + '/key=%(quadkey)s&format=%(format)s')
@@ -262,7 +269,7 @@ class TestTileClient(object):
                                               {'body': b'tile',
                                                'headers': {'content-type': 'image/png'}})]):
             resp = client.get_tile((5, 13, 9)).source.read()
-            eq_(resp, b'tile')
+            assert resp == b'tile'
     def test_xyz(self):
         template = TileURLTemplate(TESTSERVER_URL + '/x=%(x)s&y=%(y)s&z=%(z)s&format=%(format)s')
         client = TileClient(template)
@@ -270,7 +277,7 @@ class TestTileClient(object):
                                               {'body': b'tile',
                                                'headers': {'content-type': 'image/png'}})]):
             resp = client.get_tile((5, 13, 9)).source.read()
-            eq_(resp, b'tile')
+            assert resp == b'tile'
 
     def test_arcgiscache_path(self):
         template = TileURLTemplate(TESTSERVER_URL + '/%(arcgiscache_path)s.png')
@@ -279,7 +286,7 @@ class TestTileClient(object):
                                               {'body': b'tile',
                                                'headers': {'content-type': 'image/png'}})]):
             resp = client.get_tile((5, 13, 9)).source.read()
-            eq_(resp, b'tile')
+            assert resp == b'tile'
 
     def test_bbox(self):
         grid = tile_grid(4326)
@@ -289,7 +296,27 @@ class TestTileClient(object):
                                               {'body': b'tile',
                                                'headers': {'content-type': 'image/png'}})]):
             resp = client.get_tile((0, 1, 2)).source.read()
-            eq_(resp, b'tile')
+            assert resp == b'tile'
+
+
+class TestWMSClient(object):
+    def test_no_image(self, caplog):
+        try:
+            with mock_httpd(TESTSERVER_ADDRESS, [({'path': '/service?map=foo&layers=foo&transparent=true&bbox=-200000,-200000,200000,200000&width=512&height=512&srs=EPSG%3A900913&format=image%2Fpng&request=GetMap&version=1.1.1&service=WMS&styles='},
+                                                  {'status': '200', 'body': b'x' * 1000,
+                                                   'headers': {'content-type': 'application/foo'},
+                                                  })]):
+                req = WMS111MapRequest(url=TESTSERVER_URL + '/service?map=foo',
+                                        param={'layers':'foo', 'transparent': 'true'})
+                query = MapQuery((-200000, -200000, 200000, 200000), (512, 512), SRS(900913), 'png')
+                wms = WMSClient(req).retrieve(query, 'png')
+        except SourceError:
+            assert len(caplog.record_tuples) == 1
+            assert ("'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' [output truncated]"
+                in caplog.record_tuples[0][2])
+        else:
+            assert False, 'expected no image returned error'
+
 
 class TestCombinedWMSClient(object):
     def setup(self):
@@ -305,8 +332,8 @@ class TestCombinedWMSClient(object):
         req = MapQuery((-200000, -200000, 200000, 200000), (512, 512), SRS(900913), 'png')
 
         combined = wms1.combined_client(wms2, req)
-        eq_(combined.request_template.params.layers, ['foo', 'bar'])
-        eq_(combined.request_template.url, TESTSERVER_URL + '/service?map=foo')
+        assert combined.request_template.params.layers == ['foo', 'bar']
+        assert combined.request_template.url == TESTSERVER_URL + '/service?map=foo'
 
     def test_combine_different_url(self):
         req1 = WMS111MapRequest(url=TESTSERVER_URL + '/service?map=bar',
@@ -325,7 +352,7 @@ class TestWMSInfoClient(object):
     def test_transform_fi_request_supported_srs(self):
         req = WMS111FeatureInfoRequest(url=TESTSERVER_URL + '/service?map=foo', param={'layers':'foo'})
         http = MockHTTPClient()
-        wms = WMSInfoClient(req, http_client=http, supported_srs=[SRS(25832)])
+        wms = WMSInfoClient(req, http_client=http, supported_srs=SupportedSRS([SRS(25832)]))
         fi_req = InfoQuery((8, 50, 9, 51), (512, 512),
                            SRS(4326), (128, 64), 'text/plain')
 
@@ -359,12 +386,12 @@ class TestWMSMapRequest100(object):
         self.r = WMS100MapRequest(param=dict(layers='foo', version='1.1.1', request='GetMap'))
         self.r.params = self.r.adapt_params_to_version()
     def test_version(self):
-        eq_(self.r.params['WMTVER'], '1.0.0')
+        assert self.r.params['WMTVER'] == '1.0.0'
         assert 'VERSION' not in self.r.params
     def test_service(self):
         assert 'SERVICE' not in self.r.params
     def test_request(self):
-        eq_(self.r.params['request'], 'map')
+        assert self.r.params['request'] == 'map'
     def test_str(self):
         assert_query_eq(str(self.r.params), 'layers=foo&styles=&request=map&wmtver=1.0.0')
 
@@ -373,12 +400,12 @@ class TestWMSMapRequest130(object):
         self.r = WMS130MapRequest(param=dict(layers='foo', WMTVER='1.0.0'))
         self.r.params = self.r.adapt_params_to_version()
     def test_version(self):
-        eq_(self.r.params['version'], '1.3.0')
+        assert self.r.params['version'] == '1.3.0'
         assert 'WMTVER' not in self.r.params
     def test_service(self):
-        eq_(self.r.params['service'], 'WMS' )
+        assert self.r.params['service'] == 'WMS'
     def test_request(self):
-        eq_(self.r.params['request'], 'GetMap')
+        assert self.r.params['request'] == 'GetMap'
     def test_str(self):
         query_eq(str(self.r.params), 'layers=foo&styles=&service=WMS&request=GetMap&version=1.3.0')
 
@@ -387,5 +414,5 @@ class TestWMSMapRequest111(object):
         self.r = WMS111MapRequest(param=dict(layers='foo', WMTVER='1.0.0'))
         self.r.params = self.r.adapt_params_to_version()
     def test_version(self):
-        eq_(self.r.params['version'], '1.1.1')
+        assert self.r.params['version'] == '1.1.1'
         assert 'WMTVER' not in self.r.params

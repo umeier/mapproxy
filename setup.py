@@ -4,7 +4,7 @@ import pkg_resources
 
 
 install_requires = [
-    'PyYAML>=3.0,<3.99',
+    'PyYAML>=3.0',
 ]
 
 def package_installed(pkg):
@@ -54,7 +54,7 @@ def long_description(changelog_releases=10):
 
 setup(
     name='MapProxy',
-    version="1.11.0a0",
+    version="1.12.0",
     description='An accelerating proxy for tile and web map services',
     long_description=long_description(7),
     author='Oliver Tonnhofer',
@@ -68,16 +68,6 @@ setup(
             'mapproxy-seed = mapproxy.seed.script:main',
             'mapproxy-util = mapproxy.script.util:main',
         ],
-        'paste.app_factory': [
-            'app = mapproxy.wsgiapp:app_factory',
-            'multiapp = mapproxy.multiapp:app_factory'
-        ],
-        'paste.paster_create_template': [
-            'mapproxy_conf=mapproxy.config_template:PasterConfigurationTemplate'
-        ],
-        'paste.filter_factory': [
-            'lighttpd_root_fix = mapproxy.util.wsgi:lighttpd_root_fix_filter_factory',
-        ],
     },
     package_data = {'': ['*.xml', '*.yaml', '*.ttf', '*.wsgi', '*.ini']},
     install_requires=install_requires,
@@ -86,14 +76,14 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Internet :: Proxy Servers",
         "Topic :: Internet :: WWW/HTTP :: WSGI",
         "Topic :: Scientific/Engineering :: GIS",
     ],
     zip_safe=False,
-    test_suite='nose.collector',
 )

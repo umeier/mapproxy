@@ -1,9 +1,15 @@
 globals:
+  http:
+    hide_error_details: false
   cache:
     base_dir: cache_data/
     meta_size: [1, 1]
     meta_buffer: 0
     tile_lock_dir: defaulttilelockdir
+
+  srs:
+    preferred_src_proj:
+      'EPSG:25831': ['EPSG:25832', 'EPSG:3857']
 
   image:
     # resampling: 'bicubic'
@@ -19,7 +25,7 @@ services:
   kml:
   wmts:
   wms:
-    image_formats: ['image/png', 'image/jpeg', 'png8']
+    image_formats: ['image/png', 'image/jpeg', 'png8', 'image/tiff']
     srs: ['EPSG:4326', 'CRS:84', 'EPSG:900913', 'EPSG:3857', 'EPSG:31466', 'EPSG:31467', 'EPSG:31468', 'EPSG:25831', 'EPSG:25832', 'EPSG:25833']
     bbox_srs:
         - 'EPSG:3857'
@@ -165,6 +171,8 @@ sources:
     req:
       url: http://localhost:42423/service
       layers: bar
+    wms_opts:
+      featureinfo: True
     coverage:
       bbox: [-180, -80, 170, 80]
       srs: 'EPSG:4326'
@@ -233,3 +241,6 @@ sources:
     req:
       url: http://localhost:42423/service
       layers: fi
+    coverage:
+      bbox: [-180,-90,170,80]
+      srs: 'EPSG:4326'

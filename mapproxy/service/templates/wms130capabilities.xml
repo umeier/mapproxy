@@ -41,6 +41,10 @@
 {{endif}}
     <Fees>{{service.get('fees', 'none')}}</Fees>
     <AccessConstraints>{{service.get('access_constraints', 'none')}}</AccessConstraints>
+{{if max_output_size}}
+    <MaxWidth>{{max_output_size[0]}}</MaxWidth>
+    <MaxHeight>{{max_output_size[1]}}</MaxHeight>
+{{endif}}
 </Service>
 
 <Capability>
@@ -93,7 +97,7 @@
   </Exception>
 {{if inspire_md}}
 
-{{def inspire_dates(config)}}
+{{def inspire_dates(config={})}}
   {{if 'date_of_publication' in config}}
 <inspire_common:DateOfPublication>{{config['date_of_publication']}}</inspire_common:DateOfPublication>
   {{endif}}
@@ -196,7 +200,7 @@
   {{endif}}
   </inspire_vs:ExtendedCapabilities>
 {{endif}}
-{{def layer_capabilities(layer, with_srs)}}
+{{def layer_capabilities(layer, with_srs=False)}}
   {{py: md = bunch(default='', **layer.md)}}
 
   <Layer{{if layer.queryable}} queryable="1"{{endif}}>
@@ -293,7 +297,7 @@
   </Layer>
 {{enddef}}
 
-{{def layer_meta_tag(tag, config)}}
+{{def layer_meta_tag(tag, config={})}}
   {{for data in config}}
   {{py: data=bunch(default='', **data)}}
     <{{tag}}{{if data.type}} type="{{data.type|escape}}"{{endif}}>

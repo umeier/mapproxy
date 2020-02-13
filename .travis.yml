@@ -6,20 +6,23 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
+  - "3.7"
+  - "3.8"
 
 services:
   - couchdb
-  - riak
   - cassandra
   - redis-server
 
 addons:
   apt:
+    sources:
+      - sourceline: 'deb https://packagecloud.io/basho/riak/ubuntu/ xenial main'
+        key_url: 'https://packagecloud.io/basho/riak/gpgkey'
     packages:
-      - libproj0
+      - proj-bin
       - libgeos-dev
       - libgdal-dev
-      - libgdal1h
       - libxslt1-dev
       - libxml2-dev
       - build-essential
@@ -29,6 +32,7 @@ addons:
       - libfreetype6-dev
       - protobuf-compiler
       - libprotoc-dev
+      - riak
 
 env:
   global:
@@ -36,6 +40,7 @@ env:
     - CASSANDRA_SERVER='localhost'
     - CASS_DRIVER_NO_CYTHON=1
     - MAPPROXY_TEST_REDIS=127.0.0.1:6379
+
     - MAPPROXY_TEST_RIAK_HTTP=http://localhost:8098
     - MAPPROXY_TEST_RIAK_PBC=pbc://localhost:8087
 
@@ -44,11 +49,11 @@ env:
     - BOTO_CONFIG=/doesnotexist
 
 matrix:
-  # Test 2.7 and 3.6 also with latest Pillow version
   include:
+    # Test 2.7 and 3.8 also with latest Pillow version
     - python: "2.7"
       env: USE_LATEST_PILLOW=1
-    - python: "3.6"
+    - python: "3.8"
       env: USE_LATEST_PILLOW=1
 
 cache:
@@ -56,11 +61,12 @@ cache:
     - $HOME/.cache/pip
 
 before_install:
-    - echo -n "ulimit -n 4096" | sudo tee /etc/default/riak && sudo service riak restart	# default open file limit is too low for riak
+    - "sudo systemctl start riak"
 
 install:
     - "pip install -r requirements-tests.txt"
     - "if [[ $USE_LATEST_PILLOW = '1' ]]; then pip install -U Pillow; fi"
     - "pip freeze"
 
-script: nosetests mapproxy
+script:
+    - pytest mapproxy
