@@ -71,6 +71,7 @@ http_opts = {
     'client_timeout': number(),
     'ssl_no_cert_checks': bool(),
     'ssl_ca_certs': str(),
+    'hide_error_details': bool(),
     'headers': {
         anything(): str()
     },
@@ -143,6 +144,9 @@ cache_types = {
         'directory_layout': str(),
         'directory': str(),
         'profile_name': str(),
+        'region_name': str(),
+        'endpoint_url': str(),
+        'access_control_list': str(),
         'tile_lock_dir': str(),
      },
     'riak': {
@@ -369,6 +373,8 @@ mapproxy_yaml_spec = {
             's3': {
                 'bucket_name': str(),
                 'profile_name': str(),
+                'region_name': str(),
+                'endpoint_url': str(),
             },
         },
         'grid': {
@@ -378,6 +384,7 @@ mapproxy_yaml_spec = {
           'axis_order_ne': [str()],
           'axis_order_en': [str()],
           'proj_data_dir': str(),
+          'preferred_src_proj': {anything(): [str()]},
         },
         'tiles': {
             'expires_hours': number(),
@@ -408,6 +415,9 @@ mapproxy_yaml_spec = {
             'use_direct_from_level': number(),
             'use_direct_from_res': number(),
             'link_single_color_images': bool(),
+            'cache_rescaled_tiles': bool(),
+            'upscale_tiles': int(),
+            'downscale_tiles': int(),
             'watermark': {
                 'text': string_type,
                 'font_size': number(),
@@ -431,7 +441,14 @@ mapproxy_yaml_spec = {
             'kvp': bool(),
             'restful': bool(),
             'restful_template': str(),
+            'restful_featureinfo_template': str(),
             'md': ogc_service_md,
+            'featureinfo_formats': [
+                {
+                    required('mimetype'): str(),
+                    'suffix': str(),
+                },
+            ],
         },
         'wms': {
             'srs': [str()],
@@ -464,6 +481,7 @@ mapproxy_yaml_spec = {
                     'legendurl': str(),
                     'featureinfo_format': str(),
                     'featureinfo_xslt': str(),
+                    'featureinfo_out_format': str(),
                 },
                 'image': combined(image_opts, {
                     'opacity':number(),
@@ -473,6 +491,7 @@ mapproxy_yaml_spec = {
                 'supported_formats': [str()],
                 'supported_srs': [str()],
                 'http': http_opts,
+                'on_error': on_error,
                 'forward_req_params': [str()],
                 required('req'): {
                     required('url'): str(),
@@ -535,7 +554,8 @@ mapproxy_yaml_spec = {
                     'featureinfo_return_geometries': bool(),
                 },
                 'supported_srs': [str()],
-                'http': http_opts
+                'http': http_opts,
+                'on_error': on_error
             }),
             'debug': {
             },
@@ -572,13 +592,3 @@ mapproxy_yaml_spec = {
     'parts': anything(),
 }
 
-if __name__ == '__main__':
-    import sys
-    import yaml
-    for f in sys.argv[1:]:
-        data = yaml.load(open(f))
-        try:
-            validate(mapproxy_yaml_spec, data)
-        except ValidationError as ex:
-            for err in ex.errors:
-                print('%s: %s' % (f, err))

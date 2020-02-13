@@ -65,7 +65,7 @@ def parse_grid_definition(definition):
     grid_conf = {}
     for arg in args:
         key, value = arg.split('=')
-        value = yaml.load(value)
+        value = yaml.safe_load(value)
         grid_conf[key] = value
 
     validate(conf_spec.grid_opts, grid_conf)
@@ -93,7 +93,7 @@ def format_export_task(task, custom_grid):
     return '\n'.join(info)
 
 def export_command(args=None):
-    parser = optparse.OptionParser("%prog grids [options] mapproxy_conf")
+    parser = optparse.OptionParser("%prog export [options] mapproxy_conf")
     parser.add_option("-f", "--mapproxy-conf", dest="mapproxy_conf",
         help="MapProxy configuration")
 

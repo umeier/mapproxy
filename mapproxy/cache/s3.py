@@ -22,7 +22,7 @@ import threading
 from mapproxy.image import ImageSource
 from mapproxy.cache import path
 from mapproxy.cache.base import tile_buffer, TileCacheBase
-from mapproxy.util import async
+from mapproxy.util import async_
 from mapproxy.util.py import reraise_exception
 
 try:
@@ -50,11 +50,16 @@ class S3ConnectionError(Exception):
 class S3Cache(TileCacheBase):
 
     def __init__(self, base_path, file_ext, directory_layout='tms',
-                 bucket_name='mapproxy', profile_name=None,
-                 _concurrent_writer=4):
+                 bucket_name='mapproxy', profile_name=None, region_name=None, endpoint_url=None,
+                 _concurrent_writer=4, access_control_list=None):
         super(S3Cache, self).__init__()
         self.lock_cache_id = hashlib.md5(base_path.encode('utf-8') + bucket_name.encode('utf-8')).hexdigest()
         self.bucket_name = bucket_name
+        self.profile_name = profile_name
+        self.region_name = region_name
+        self.endpoint_url = endpoint_url
+        self.access_control_list = access_control_list
+
         try:
             self.bucket = self.conn().head_bucket(Bucket=bucket_name)
         except botocore.exceptions.ClientError as e:
@@ -82,7 +87,7 @@ class S3Cache(TileCacheBase):
             raise ImportError("S3 Cache requires 'boto3' package.")
 
         try:
-            return s3_session().client("s3")
+            return s3_session(self.profile_name).client("s3", region_name=self.region_name, endpoint_url=self.endpoint_url)
         except Exception as e:
             raise S3ConnectionError('Error during connection %s' % e)
 
@@ -111,7 +116,7 @@ class S3Cache(TileCacheBase):
         return True
 
     def load_tiles(self, tiles, with_metadata=True):
-        p = async.Pool(min(4, len(tiles)))
+        p = async_.Pool(min(4, len(tiles)))
         return all(p.map(self.load_tile, tiles))
 
     def load_tile(self, tile, with_metadata=True):
@@ -139,7 +144,7 @@ class S3Cache(TileCacheBase):
         self.conn().delete_object(Bucket=self.bucket_name, Key=key)
 
     def store_tiles(self, tiles):
-        p = async.Pool(min(self._concurrent_writer, len(tiles)))
+        p = async_.Pool(min(self._concurrent_writer, len(tiles)))
         p.map(self.store_tile, tiles)
 
     def store_tile(self, tile):
@@ -152,6 +157,8 @@ class S3Cache(TileCacheBase):
         extra_args = {}
         if self.file_ext in ('jpeg', 'png'):
             extra_args['ContentType'] = 'image/' + self.file_ext
+        if self.access_control_list:
+            extra_args['ACL'] = self.access_control_list
         with tile_buffer(tile) as buf:
             self.conn().upload_fileobj(
                 NopCloser(buf), # upload_fileobj closes buf, wrap in NopCloser

@@ -15,10 +15,10 @@
 
 from __future__ import print_function
 
+
 import re
 import threading
 import sys
-import cgi
 import socket
 import errno
 import time
@@ -26,7 +26,7 @@ import base64
 from contextlib import contextmanager
 from mapproxy.util.py import reraise
 from mapproxy.compat import iteritems, PY2
-from mapproxy.compat.modules import urlparse
+from mapproxy.compat.modules import urlparse, parse_qsl
 if PY2:
     from cStringIO import StringIO
 else:
@@ -64,7 +64,7 @@ class RequestMismatch(object):
         self.actual = actual
 
     def __str__(self):
-        return ('requests mismatch, expected:\n' +
+        return ('requests mismatch (%s), expected:\n' % self.msg +
             text_indent(str(self.expected), '    ') +
             '\n  got:\n' + text_indent(str(self.actual), '    '))
 
@@ -268,7 +268,7 @@ class MockServ(object):
 
     def __exit__(self, type, value, traceback):
         self._thread.shutdown = True
-        self._thread.join()
+        self._thread.join(30)
 
         if not self._thread.sucess and value:
             print('requests to mock httpd did not '
@@ -418,7 +418,7 @@ def query_to_dict(query):
     d = {}
     if '?' in query:
         query = query.split('?', 1)[-1]
-    for key, value in cgi.parse_qsl(query):
+    for key, value in parse_qsl(query):
         d[key.lower()] = value
     return d
 
@@ -449,7 +449,7 @@ def mock_httpd(address, requests_responses, unordered=False, bbox_aware_query_co
         raise
     finally:
         t.shutdown = True
-        t.join(1)
+        t.join(30)
     if not t.sucess:
         raise RequestsMismatchError(t.assertions)
 
@@ -465,7 +465,7 @@ def mock_single_req_httpd(address, request_handler):
         raise
     finally:
         t.shutdown = True
-        t.join(1)
+        t.join(30)
     if not t.sucess:
         raise RequestsMismatchError(t.assertions)
 
@@ -480,3 +480,8 @@ def make_wsgi_env(query_string, extra_environ={}):
 
 def basic_auth_value(username, password):
     return base64.b64encode(('%s:%s' % (username, password)).encode('utf-8'))
+
+def assert_no_cache(resp):
+    assert resp.headers["Pragma"] == "no-cache"
+    assert resp.headers["Expires"] == "-1"
+    assert resp.cache_control.no_store == True
